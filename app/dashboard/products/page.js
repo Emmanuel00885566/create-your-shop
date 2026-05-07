@@ -6,10 +6,10 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import initialProducts from '@/mock/products'
+import useProductStore from '@/store/productStore'
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState(initialProducts)
+  const { products, deleteProduct } = useProductStore()
   const [search, setSearch] = useState('')
 
   const filtered = products.filter((p) =>
@@ -20,7 +20,7 @@ export default function ProductsPage() {
   function handleDelete(id) {
     const confirmed = window.confirm('Are you sure you want to delete this product?')
     if (confirmed) {
-      setProducts((prev) => prev.filter((p) => p.id !== id))
+      deleteProduct(id)
     }
   }
 
