@@ -11,6 +11,7 @@ const navLinks = [
   { label: 'Products',  href: '/dashboard/products' },
   { label: 'Orders',    href: '/dashboard/orders' },
   { label: 'Reviews',   href: '/dashboard/reviews' },
+    { label: 'Settings',  href: '/dashboard/settings' },
 ]
 
 export default function DashboardLayout({ children }) {
