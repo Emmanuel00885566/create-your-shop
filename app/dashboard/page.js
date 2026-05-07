@@ -12,17 +12,36 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts'
 import analytics from '@/mock/analytics'
+import orders from '@/mock/orders'
+import reviews from '@/mock/reviews'
 
-const stats = [
-  { label: 'Products',  value: '12' },
-  { label: 'Orders',    value: '57' },
-  { label: 'Revenue',   value: '₦499,000' },
-  { label: 'Reviews',   value: '23' },
-]
+const COLORS = ['#2563eb', '#f59e0b', '#10b981']
 
 export default function DashboardPage() {
+  const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0)
+  const pendingOrders = orders.filter((o) => o.status === 'pending').length
+  const avgRating = (
+    reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+  ).toFixed(1)
+
+  const stats = [
+    { label: 'Total orders',    value: orders.length },
+    { label: 'Pending orders',  value: pendingOrders },
+    { label: 'Total revenue',   value: `₦${totalRevenue.toLocaleString()}` },
+    { label: 'Avg rating',      value: `⭐ ${avgRating}` },
+  ]
+
+  const statusData = [
+    { name: 'Pending',    value: orders.filter((o) => o.status === 'pending').length },
+    { name: 'Processing', value: orders.filter((o) => o.status === 'processing').length },
+    { name: 'Completed',  value: orders.filter((o) => o.status === 'completed').length },
+  ]
+
   return (
     <div className="flex flex-col gap-8">
 
@@ -35,7 +54,7 @@ export default function DashboardPage() {
         <Badge>Live</Badge>
       </div>
 
-      {/* Stats cards */}
+      {/* Stats cards - now using real data! */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {stats.map((stat) => (
           <Card key={stat.label} className="p-6 flex flex-col gap-2">
@@ -45,7 +64,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Charts row */}
+      {/* Charts row 1 */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
         {/* Orders bar chart */}
@@ -80,6 +99,66 @@ export default function DashboardPage() {
               />
             </LineChart>
           </ResponsiveContainer>
+        </Card>
+
+      </div>
+
+      {/* Charts row 2 */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+        {/* Order status pie chart */}
+        <Card className="p-6 flex flex-col gap-4">
+          <h2 className="text-base font-semibold text-gray-700">Orders by status</h2>
+          <div className="flex items-center gap-6">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {statusData.map((_, index) => (
+                    <Cell key={index} fill={COLORS[index]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="flex flex-col gap-2 min-w-fit">
+              {statusData.map((item, index) => (
+                <div key={item.name} className="flex items-center gap-2 text-sm">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: COLORS[index] }}
+                  />
+                  <span className="text-gray-600">{item.name}</span>
+                  <span className="font-medium text-gray-800">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* Recent orders */}
+        <Card className="p-6 flex flex-col gap-4">
+          <h2 className="text-base font-semibold text-gray-700">Recent orders</h2>
+          <div className="flex flex-col divide-y divide-gray-100">
+            {orders.slice(0, 3).map((order) => (
+              <div key={order.id} className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{order.customer}</p>
+                  <p className="text-xs text-gray-400">{order.date}</p>
+                </div>
+                <p className="text-sm font-bold text-gray-800">
+                  ₦{order.total.toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
         </Card>
 
       </div>
