@@ -1,25 +1,52 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/AuthContext'
 
 export default function SignupPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [role, setRole] = useState('user')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const { signup } = useAuth()
+  const router = useRouter()
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+
+    if (!name || !email || !password || !confirmPassword) {
+      setError('Please fill in all fields')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match!')
       return
     }
 
-    console.log('Signing up:', name, email, password)
-    alert(`Account created for ${name}! 🎉`)
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const user = await signup(name, email, password, role)
+      if (user.role === 'vendor' || user.role === 'admin') {
+        router.push('/dashboard')
+      } else {
+        router.push('/')
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Signup failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -75,15 +102,45 @@ export default function SignupPage() {
             />
           </div>
 
+          {/* Role selector */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">I want to</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setRole('user')}
+                className={`py-3 rounded-lg border text-sm font-medium transition-colors
+                  ${role === 'user'
+                    ? 'border-blue-600 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+              >
+                🛍️ Shop as customer
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('vendor')}
+                className={`py-3 rounded-lg border text-sm font-medium transition-colors
+                  ${role === 'vendor'
+                    ? 'border-blue-600 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+              >
+                🏪 Sell as vendor
+              </button>
+            </div>
+          </div>
+
           {error && (
             <p className="text-red-500 text-sm text-center">{error}</p>
           )}
 
           <button
             type="submit"
-            className="bg-blue-600 text-white rounded-lg py-2 font-medium hover:bg-blue-700 transition-colors"
+            disabled={loading}
+            className="bg-blue-600 text-white rounded-lg py-2 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            Create account
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
 
         </form>

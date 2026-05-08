@@ -8,10 +8,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const router = useRouter()
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
@@ -25,8 +26,19 @@ export default function LoginPage() {
       return
     }
 
-    login(email, password)
-    router.push('/dashboard')
+    setLoading(true)
+    try {
+      const user = await login(email, password)
+      if (user.role === 'vendor' || user.role === 'admin') {
+        router.push('/dashboard')
+      } else {
+        router.push('/')
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -66,9 +78,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="bg-blue-600 text-white rounded-lg py-2 font-medium hover:bg-blue-700 transition-colors"
+            disabled={loading}
+            className="bg-blue-600 text-white rounded-lg py-2 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            Login
+            {loading ? 'Logging in...' : 'Login'}
           </button>
 
         </form>
