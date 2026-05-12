@@ -1,8 +1,8 @@
 const shop = {
   id: 1,
-  name: "Emmanuel's Store",
-  slug: 'emmanuel-store',
-  description: 'Your one stop shop for quality products at the best prices in Nigeria!',
+  name: "E-made Stores",
+  slug: 'e-made-stores',
+  description: 'We sell all kind of Computer Accessories',
   themeColor: '#2563eb',
   logo: null,
   banner: null,
