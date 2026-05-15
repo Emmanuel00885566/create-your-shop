@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import useCartStore from '@/store/cartStore'
-import shop from '@/mock/shop'
+import api from '@/lib/api'
 
 export default function CheckoutPage() {
   const { shopSlug } = useParams()
   const router = useRouter()
   const { items, getTotalPrice, clearCart } = useCartStore()
+  const [shop, setShop] = useState(null)
   const [deliveryType, setDeliveryType] = useState('delivery')
   const [form, setForm] = useState({
     name: '',
@@ -25,11 +26,24 @@ export default function CheckoutPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    fetchShop()
+  }, [shopSlug])
+
+  async function fetchShop() {
+    try {
+      const response = await api.get(`/shops/${shopSlug}`)
+      setShop(response.data.shop)
+    } catch (err) {
+      console.error('Error fetching shop:', err)
+    }
+  }
+
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
@@ -48,11 +62,42 @@ export default function CheckoutPage() {
       return
     }
 
+    if (!shop) {
+      setError('Shop not found!')
+      return
+    }
+
     setLoading(true)
-    setTimeout(() => {
+    try {
+      const orderData = {
+        shop: shop._id,
+        customerName: form.name,
+        customerEmail: form.email,
+        deliveryAddress: deliveryType === 'delivery'
+          ? form.address
+          : 'Pickup',
+        items: items.map((item) => ({
+          product: item._id,
+          title: item.product_name || item.name,
+          price: item.price,
+          qty: item.quantity,
+        })),
+        meta: {
+          phone: form.phone,
+          note: form.note,
+          deliveryType,
+        }
+      }
+
+      await api.post('/orders/create_order', orderData)
       clearCart()
       router.push(`/shop/${shopSlug}/thankyou`)
-    }, 1500)
+    } catch (err) {
+      console.error('Order error:', err)
+      setError(err.response?.data?.message || 'Failed to place order. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (items.length === 0) {
@@ -60,20 +105,20 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <div
           className="w-full px-6 py-4"
-          style={{ backgroundColor: shop.themeColor }}
+          style={{ backgroundColor: shop?.themeColor || '#2563eb' }}
         >
           <Link
             href={`/shop/${shopSlug}`}
             className="text-white opacity-80 hover:opacity-100 text-sm"
           >
-            ← Back to {shop.name}
+            ← Back to shop
           </Link>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <p className="text-6xl">🛒</p>
           <h2 className="text-xl font-bold text-gray-800">Your cart is empty!</h2>
           <Link href={`/shop/${shopSlug}`}>
-            <Button style={{ backgroundColor: shop.themeColor }}>
+            <Button className="bg-blue-600 hover:bg-blue-700">
               Go shopping
             </Button>
           </Link>
@@ -88,7 +133,7 @@ export default function CheckoutPage() {
       {/* Top nav */}
       <div
         className="w-full px-6 py-4"
-        style={{ backgroundColor: shop.themeColor }}
+        style={{ backgroundColor: shop?.themeColor || '#2563eb' }}
       >
         <Link
           href={`/shop/${shopSlug}/cart`}
@@ -106,7 +151,6 @@ export default function CheckoutPage() {
           {/* Left - form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-            {/* Contact details */}
             <Card className="p-6 flex flex-col gap-4">
               <h2 className="text-base font-semibold text-gray-700">
                 Contact details
@@ -144,7 +188,6 @@ export default function CheckoutPage() {
               </div>
             </Card>
 
-            {/* Delivery type */}
             <Card className="p-6 flex flex-col gap-4">
               <h2 className="text-base font-semibold text-gray-700">
                 Delivery option
@@ -214,8 +257,7 @@ export default function CheckoutPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full text-white py-3"
-              style={{ backgroundColor: shop.themeColor }}
+              className="w-full text-white py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
             >
               {loading ? 'Placing order...' : 'Place order →'}
             </Button>
@@ -231,15 +273,17 @@ export default function CheckoutPage() {
 
               <div className="flex flex-col divide-y divide-gray-100">
                 {items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 py-3">
+                  <div key={item._id || item.id} className="flex items-center gap-3 py-3">
                     <img
-                      src={item.image}
-                      alt={item.name}
+                      src={item.image
+                        ? `http://localhost:5000/${item.image}`
+                        : 'https://placehold.co/60x60'}
+                      alt={item.product_name || item.name}
                       className="w-12 h-12 rounded-lg object-cover bg-gray-100"
                     />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-800">
-                        {item.name}
+                        {item.product_name || item.name}
                       </p>
                       <p className="text-xs text-gray-400">
                         Qty: {item.quantity}

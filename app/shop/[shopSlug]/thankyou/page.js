@@ -9,9 +9,7 @@ import shop from '@/mock/shop'
 export default function ThankYouPage() {
   const { shopSlug } = useParams()
   const [show, setShow] = useState(false)
-  const [orderNumber] = useState(() =>
-    Math.floor(Math.random() * 90000) + 10000
-  )
+  const [orderNumber] = useState('CONFIRMED')
 
   useEffect(() => {
     setTimeout(() => setShow(true), 100)
